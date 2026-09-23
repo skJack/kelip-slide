@@ -3,9 +3,9 @@
 用**单个 HTML 文件**做讲解幻灯片：1920×1080，浅灰底 + 黑字 + 一个强调色，一页一张大图，
 文字少、页不排满。Chrome 双击就能放，方向键翻页，断网可用，适合录屏讲解和技术分享。
 
-这是一个 [Claude Code](https://claude.com/claude-code) skill——装上之后跟 Claude 说
-「做一个讲 X 的 deck」，它就按这套版式给你搭。不用 Claude 也能用：
-`assets/deck-template.html` 本身就是一份可以直接改的模板。
+**一套模板 + 一份写给 AI Agent 看的规范。** 给你的 agent（Claude Code、Cursor、Codex、
+Copilot、任何能读文件改文件的）指一下这个目录，说「做一个讲 X 的 deck」，它就按这套版式搭；
+人自己动手也行，`assets/deck-template.html` 就是一份可以直接改的模板。
 
 ![15 种页型](assets/page-types.png)
 
@@ -19,20 +19,37 @@
 
 ## 安装
 
+**Claude Code**（装成 skill，会自动触发）：
+
 ```bash
 git clone https://github.com/skJack/kelip-slide.git ~/.claude/skills/kelip-slide
 ```
 
-装完在 Claude Code 里敲 `/` 能看到 `kelip-slide`。不用 Claude 的话跳到
-[手动用模板](#方式二手动用模板)。
+**其他 AI Agent**（Cursor / Codex / Copilot / 自己写的 agent）——clone 到项目里，
+让 agent 读 `SKILL.md` 就行：
+
+```bash
+git clone https://github.com/skJack/kelip-slide.git tools/kelip-slide
+```
+
+然后在项目的 `AGENTS.md` / `.cursorrules` / 系统提示里加一句：
+
+```
+做幻灯片 / deck / slides 时，先读 tools/kelip-slide/SKILL.md，按它的版式和流程做。
+```
+
+（仓库根目录自带一份 `AGENTS.md`，会读这个约定的 agent 不用你额外配。）
+
+**不用 agent**：跳到[手动用模板](#方式二手动用模板)。
 
 ---
 
 ## 用法
 
-### 方式一：让 Claude 搭
+### 方式一：让 AI Agent 搭
 
-装完直接说需求就行，它会自己找过来：
+装完直接说需求就行（Claude Code 装成 skill 的话会自己找过来，
+其他 agent 提一句「按 kelip-slide 的规范来」）：
 
 ```
 用 kelip-slide 做一个 deck，讲 XXX 论文，图在 ./paper/figures，我要讲 15 分钟
@@ -51,6 +68,8 @@ git clone https://github.com/skJack/kelip-slide.git ~/.claude/skills/kelip-slide
 
 它会做四件事：复制模板 → 逐页填 → **渲染成缩略图自己看一遍** → 把图给你确认。
 最后你会拿到一个 `deck/` 文件夹：`deck.html` + `media/` + 一张全页预览。
+（第三步是这套规范里最要紧的一条——`SKILL.md` 明确要求 agent 先把 deck 渲染成图自己检查一遍，
+而不是写完 HTML 就交差。能看图的 agent 都该这么用。）
 
 想提高一次成型率，动手前先把这三样给它：**素材放哪**、**讲多久 / 多少页**、
 **每段要讲什么**（一句话一段就够）。
@@ -59,8 +78,8 @@ git clone https://github.com/skJack/kelip-slide.git ~/.claude/skills/kelip-slide
 
 ```bash
 mkdir -p mydeck/media && cd mydeck
-cp ~/.claude/skills/kelip-slide/assets/deck-template.html deck.html
-cp ~/.claude/skills/kelip-slide/assets/render_preview.py .
+cp <kelip-slide 目录>/assets/deck-template.html deck.html   # Claude Code: ~/.claude/skills/kelip-slide
+cp <kelip-slide 目录>/assets/render_preview.py .
 open deck.html          # Linux: xdg-open
 ```
 
@@ -141,7 +160,8 @@ open /tmp/deck-render/contact.png
 
 | 文件 | 用途 |
 |---|---|
-| `SKILL.md` | 版式系统、15 种页型速查、自查回路、常见坑 |
+| `SKILL.md` | 给 agent（和人）看的规范：版式系统、15 种页型速查、自查回路、常见坑 |
+| `AGENTS.md` | 一行指路，给会自动读它的 agent |
 | `assets/deck-template.html` | 模板：全部组件 CSS + 导航 JS + 每种页型一个示例页 |
 | `assets/render_preview.py` | 逐页渲染成 PNG 并拼成缩略图 |
 | `references/svg.md` | 自绘机制图：坐标系、配色字号表、四种画法、分步动画 |
@@ -174,7 +194,7 @@ open /tmp/deck-render/contact.png
 
 版式是固定的，**内容规则不是**。`SKILL.md` 里标了「建议」的部分（标题写结论、一页一个点、
 页数区间、默认不放页脚小字）都是从几十期实际做下来的默认值，按你自己的需要推翻就好——
-项目里有自己的风格约定时，以你的约定为准。
+项目里有自己的风格约定时，以你的约定为准。改 `SKILL.md` 里那一节，你的 agent 就跟着变。
 
 ## License
 
