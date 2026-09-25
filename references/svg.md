@@ -47,6 +47,22 @@
 3. **上下对照**：上行「常规做法」，下行「这篇的反常做法」，下行用强调色。
 4. **柱状 / 折线**：自己用 `<rect>` `<polyline>` 画，别为一张图引图表库。轴标注 20px 灰。
 
+## 箭头：按块 id 自动连线，别手写坐标
+
+手算 `x1 y1 x2 y2` 是箭头对不齐、扎进块、穿过别的块的根源。给块加 `id`，箭头只声明从哪到哪，
+模板 JS 按块的实际位置算端点，挪块箭头跟着走：
+
+```html
+<rect id="p6-in" x="60" y="230" width="220" height="80" rx="16" fill="#F5F5F7"/>
+<path data-from="p6-in" data-to="p6-model" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+```
+
+- 用 `<path>`（JS 写它的 `d`）。`id` 挂在 `<rect>` 上；纯文字标签把 `<text>` 包进 `<g id>`。
+- 默认：左右错开且上下有重叠 → 水平线，上下错开且左右有重叠 → 竖直线，否则斜线。
+  直线优先对准终点块中线；对不上说明块本身没对齐，改块，别挪箭头。
+- `data-route`：`hv` / `vh` 直角折线；`hvh` / `vhv` 加 `data-mid="x 或 y"` 从旁边绕开挡路的块；`straight` 强制斜线。
+- 自动连线不避障：画完跑 `python3 check_arrows.py deck.html`，报「穿过块」就换 `data-route`。
+
 ## 重复元素用 JS 生成
 
 八个候选框、五行 token、九个百分比——不要手写 80 个 `<rect>`。留一个空的 `<g id="rows">`，

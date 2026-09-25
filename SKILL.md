@@ -18,7 +18,7 @@ description: 用单文件 HTML 做讲解幻灯片——1920×1080，苹果 keyno
 ```bash
 mkdir -p <项目>/deck/media && cd <项目>/deck
 cp ~/.claude/skills/kelip-slide/assets/deck-template.html deck.html
-cp ~/.claude/skills/kelip-slide/assets/render_preview.py .
+cp ~/.claude/skills/kelip-slide/assets/render_preview.py ~/.claude/skills/kelip-slide/assets/check_arrows.py .
 ```
 
 模板里每种页型都有一个填好的示例页（按注释编号找，长什么样见 `assets/page-types.png`）。
@@ -73,6 +73,9 @@ sub       可选，一行补充                              30px 灰
 
 ## 自查回路（这一步别跳）
 
+有自绘 SVG 的先跑 `python3 check_arrows.py deck.html`：按实际排版量每根箭头，头部悬空 / 扎进块 /
+打偏 / 穿过别的块或文字报 ✗（全部改掉），没对准块中线报 △（逐条看，故意的就留着）。
+
 ```bash
 python3 render_preview.py deck.html <页数> /tmp/deck-render 1 \
   && cp /tmp/deck-render/contact.png 预览-全部页面.png
@@ -108,6 +111,7 @@ deck/
   deck.html            单文件，所有 CSS/JS 内联
   media/               图片、视频，全部本地化（deck 里不引外链）
   render_preview.py    渲染自查
+  check_arrows.py      箭头检查
   说明.md              页码对应表 + 自绘页画了什么 + 素材来源 + 重跑命令
   预览-全部页面.png     contact sheet
 ```
@@ -117,6 +121,7 @@ deck/
 
 ## 常见坑
 
+- **箭头别手写坐标**：块加 `id`，箭头写 `<path data-from data-to>`，见 `references/svg.md`。
 - **箭头 `<marker>` 必须定义在 `#stage` 开头那个 0×0 的全局 svg 里**。放进某一页的 svg，
   那页 `display:none` 时所有页的箭头会一起消失。
 - **`.diagbox.pad` 的留边**只能写 `inset:0;margin:auto;width:calc(100% - 88px);height:calc(100% - 68px)`；

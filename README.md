@@ -79,7 +79,7 @@ git clone https://github.com/skJack/kelip-slide.git tools/kelip-slide
 ```bash
 mkdir -p mydeck/media && cd mydeck
 cp <kelip-slide 目录>/assets/deck-template.html deck.html   # Claude Code: ~/.claude/skills/kelip-slide
-cp <kelip-slide 目录>/assets/render_preview.py .
+cp <kelip-slide 目录>/assets/render_preview.py <kelip-slide 目录>/assets/check_arrows.py .
 open deck.html          # Linux: xdg-open
 ```
 
@@ -131,7 +131,8 @@ open /tmp/deck-render/contact.png
 路径不对就 `CHROME=/path/to/chrome python3 render_preview.py ...`）
 
 重点看：图是不是顶到卡边、白卡是不是空了一半、表格有没有挤成一团、标题有没有压住图。
-单页放大看 `/tmp/deck-render/slide-07.png`。
+单页放大看 `/tmp/deck-render/slide-07.png`。有自绘图的再跑 `python3 check_arrows.py deck.html`，
+查箭头悬空、打偏、穿过别的块——这些在缩略图上很难看出来。
 
 ### 放映和录屏
 
@@ -164,6 +165,7 @@ open /tmp/deck-render/contact.png
 | `AGENTS.md` | 一行指路，给会自动读它的 agent |
 | `assets/deck-template.html` | 模板：全部组件 CSS + 导航 JS + 每种页型一个示例页 |
 | `assets/render_preview.py` | 逐页渲染成 PNG 并拼成缩略图 |
+| `assets/check_arrows.py` | 检查自绘图的箭头有没有对准块、有没有穿过别的块 |
 | `references/svg.md` | 自绘机制图：坐标系、配色字号表、四种画法、分步动画 |
 | `references/media.md` | 素材处理：PDF 转图、裁白边拼图、切视频、网页截图 |
 | `references/customize.md` | 改造：换配色 / 字体 / 画幅、加回页脚小字、导出 PDF |
