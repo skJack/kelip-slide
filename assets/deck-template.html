@@ -260,14 +260,14 @@ svg[data-anim] [data-a].on{opacity:1}
     <g font-size="20" fill="#6E6E73" font-weight="500" letter-spacing="2">
       <text x="60" y="30">条件</text><text x="700" y="30" text-anchor="middle">模型</text><text x="1240" y="30">输出</text>
     </g>
-    <rect x="60" y="230" width="220" height="80" rx="16" fill="#F5F5F7"/>
+    <rect id="p6-in" x="60" y="230" width="220" height="80" rx="16" fill="#F5F5F7"/>
     <text x="170" y="278" text-anchor="middle" font-size="24" fill="#1D1D1F">首帧 + 文本</text>
-    <line x1="296" y1="270" x2="570" y2="270" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
-    <rect x="580" y="222" width="240" height="96" rx="18" fill="#F5F5F7"/>
+    <path data-from="p6-in" data-to="p6-model" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+    <rect id="p6-model" x="580" y="222" width="240" height="96" rx="18" fill="#F5F5F7"/>
     <text x="700" y="262" text-anchor="middle" font-size="22" font-weight="600" fill="#1D1D1F">视频扩散</text>
     <text x="700" y="292" text-anchor="middle" font-size="18" fill="#6E6E73">两级，先关键帧再插帧</text>
-    <line x1="836" y1="270" x2="1110" y2="270" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
-    <rect x="1120" y="230" width="200" height="80" rx="16" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+    <path data-from="p6-model" data-to="p6-out" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+    <rect id="p6-out" x="1120" y="230" width="200" height="80" rx="16" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
     <text x="1220" y="278" text-anchor="middle" font-size="24" font-weight="600" fill="#0071E3">动作</text>
     <line x1="60" y1="380" x2="1540" y2="380" stroke="#E5E5EA" stroke-width="1.5"/>
     <text x="60" y="430" font-size="20" fill="#6E6E73">分隔线用 #E5E5EA·灰框 #F5F5F7·蓝框 #E8F0FE + #0071E3 边·虚线框 = 不确定 / 外挂</text>
@@ -407,8 +407,45 @@ svg[data-anim] [data-a].on{opacity:1}
     n=Math.max(0,Math.min(slides.length-1,n)); if(n===cur) return;
     slides.forEach((s,k)=>{ const on=k===n; s.classList.toggle('active',on); s.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(e){} v.play().catch(()=>{}); } else { v.pause(); } }); });
     const nx=slides[n+1]; if(nx) nx.querySelectorAll('video').forEach(v=>{ if(v.preload!=='auto'){ v.preload='auto'; v.load(); } });
-    cur=n; history.replaceState(null,'','#'+(n+1)); updateHud(); fitFigs(slides[n]); startAnim(slides[n]);
+    cur=n; history.replaceState(null,'','#'+(n+1)); updateHud(); layoutArrows(slides[n]); fitFigs(slides[n]); startAnim(slides[n]);
   }
+  // ---- 箭头连线：<path data-from="块id" data-to="块id"> 的坐标按两个块的实际位置现算，别手写 ----
+  // data-route：auto（默认：能水平就水平、能竖直就竖直，否则斜线）| h | v | hv | vh | hvh | vhv | straight
+  // hvh / vhv 的中段位置用 data-mid（x 或 y）指定，用来绕开挡路的块；data-gap1 / data-gap2 是尾 / 头离块的距离
+  function boxIn(el,ref){
+    const bb=el.getBBox(), m=ref.getCTM().inverse().multiply(el.getCTM());
+    const ps=[[bb.x,bb.y],[bb.x+bb.width,bb.y],[bb.x,bb.y+bb.height],[bb.x+bb.width,bb.y+bb.height]].map(([x,y])=>new DOMPoint(x,y).matrixTransform(m));
+    const xs=ps.map(q=>q.x), ys=ps.map(q=>q.y), l=Math.min(...xs), t=Math.min(...ys), r=Math.max(...xs), b=Math.max(...ys);
+    return {l,t,r,b,cx:(l+r)/2,cy:(t+b)/2};
+  }
+  function layoutArrows(sl){
+    sl.querySelectorAll('svg [data-from][data-to]').forEach(p=>{
+      const svg=p.ownerSVGElement, ea=svg.getElementById(p.dataset.from), eb=svg.getElementById(p.dataset.to);
+      if(!ea||!eb){ console.warn('箭头找不到块：', p.dataset.from, '→', p.dataset.to); return; }
+      const A=boxIn(ea,p), B=boxIn(eb,p), g1=+(p.dataset.gap1||6), g2=+(p.dataset.gap2||8), f=v=>Math.round(v*10)/10;
+      const oy=[Math.max(A.t,B.t),Math.min(A.b,B.b)], ox=[Math.max(A.l,B.l),Math.min(A.r,B.r)];
+      let r=p.dataset.route||'auto';
+      if(r==='auto') r=(oy[1]-oy[0]>=12&&(B.l>=A.r||A.l>=B.r))?'h':(ox[1]-ox[0]>=12&&(B.t>=A.b||A.t>=B.b))?'v':'straight';
+      const R=B.cx>A.cx, D=B.cy>A.cy, mid=p.dataset.mid!==undefined?+p.dataset.mid:null;
+      // 直线优先对准终点块中线，其次起点块中线，都不行才取两块重叠段的中点（这时两个块本身没对齐，该挪块）
+      const pick=(c1,c2,o,lo1,hi1,lo2,hi2)=>[c1,c2,(o[0]+o[1])/2].find(v=>v>=lo1+10&&v<=hi1-10&&v>=lo2+10&&v<=hi2-10)??(o[0]+o[1])/2;
+      let d;
+      if(r==='h'){ const y=pick(B.cy,A.cy,oy,A.t,A.b,B.t,B.b); d=`M${f(R?A.r+g1:A.l-g1)},${f(y)} H${f(R?B.l-g2:B.r+g2)}`; }
+      else if(r==='v'){ const x=pick(B.cx,A.cx,ox,A.l,A.r,B.l,B.r); d=`M${f(x)},${f(D?A.b+g1:A.t-g1)} V${f(D?B.t-g2:B.b+g2)}`; }
+      else if(r==='hv') d=`M${f(R?A.r+g1:A.l-g1)},${f(A.cy)} H${f(B.cx)} V${f(D?B.t-g2:B.b+g2)}`;
+      else if(r==='vh') d=`M${f(A.cx)},${f(D?A.b+g1:A.t-g1)} V${f(B.cy)} H${f(R?B.l-g2:B.r+g2)}`;
+      else if(r==='hvh'){ const x=mid!==null?mid:(R?(A.r+B.l)/2:(A.l+B.r)/2);
+        d=`M${f(x>A.cx?A.r+g1:A.l-g1)},${f(A.cy)} H${f(x)} V${f(B.cy)} H${f(x>B.cx?B.r+g2:B.l-g2)}`; }
+      else if(r==='vhv'){ const y=mid!==null?mid:(D?(A.b+B.t)/2:(A.t+B.b)/2);
+        d=`M${f(A.cx)},${f(y>A.cy?A.b+g1:A.t-g1)} V${f(y)} H${f(B.cx)} V${f(y>B.cy?B.b+g2:B.t-g2)}`; }
+      else { const dx=B.cx-A.cx, dy=B.cy-A.cy, L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L;
+        const edge=b=>Math.min(ux?(b.r-b.l)/2/Math.abs(ux):1e9, uy?(b.b-b.t)/2/Math.abs(uy):1e9);
+        const s0=edge(A)+g1, s1=L-edge(B)-g2;
+        d=`M${f(A.cx+ux*s0)},${f(A.cy+uy*s0)} L${f(A.cx+ux*s1)},${f(A.cy+uy*s1)}`; }
+      p.setAttribute('d',d); if(!p.hasAttribute('fill')) p.setAttribute('fill','none');
+    });
+  }
+  window.deckShow=show;   // check_arrows.py 逐页检查时用
   // ---- 分步动画：PH 的每一项是那一步要点亮的 data-a 名字。没有动画页就把这段连同 startAnim 调用一起删掉 ----
   const PH=[ ['s1'], ['s1','s2'] ];
   let anim=null;
@@ -456,6 +493,7 @@ svg[data-anim] [data-a].on{opacity:1}
   addEventListener('click',e=>{ if(e.target.closest('a,#nav-panel,#nav-btn,#nav-hot')) return; if(panel.classList.contains('open')){ toggleNav(false); return; } const x=e.clientX/innerWidth; if(x<0.2) prev(); else next(); });
   addEventListener('resize',fit); fit();
   const h=parseInt((location.hash||'#1').slice(1),10); show(isNaN(h)?0:h-1);
+  if(document.fonts) document.fonts.ready.then(()=>{ if(cur>=0) layoutArrows(slides[cur]); });   // 块 id 挂在带文字的 <g> 上时，字体到位后重算
   if(/[?&]nav=1/.test(location.search)) toggleNav(true);
   hud.classList.add('show'); setTimeout(()=>{ if(!showCounter) hud.classList.remove('show'); },4000);
 })();
